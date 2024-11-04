@@ -1,9 +1,11 @@
 package com.gustavo.billingjob;
 
+import java.nio.file.Files;
+import java.nio.file.Paths;
+
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 
 import org.springframework.batch.core.ExitStatus;
 import org.springframework.batch.core.JobExecution;
@@ -14,14 +16,11 @@ import org.springframework.batch.test.context.SpringBatchTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.system.CapturedOutput;
-import org.springframework.boot.test.system.OutputCaptureExtension;
 
 // Ativa a configuração de beans específicos para testes do Spring Batch, permitindo que componentes como o 
 // JobLauncherTestUtils e JobRepositoryTestUtils estejam disponíveis automaticamente no contexto de teste.
 @SpringBatchTest
 @SpringBootTest
-// Usado para capturar as saídas padrão(stdout) e as saídas de erro(stderr) no console geradas durante a execução do teste. 
-@ExtendWith(OutputCaptureExtension.class)
 class BillingJobApplicationTests {
 	
 	// Facilita a execução de jobs e steps dentro dos testes. Um dos recursos é que ele detecta automaticamente o job em teste no 
@@ -50,12 +49,14 @@ class BillingJobApplicationTests {
 	}
 
 	@Test
-	void testJobExecution(CapturedOutput output) throws Exception {
+	// Neste teste, passamos o arquivo de entrada como um parâmetro de trabalho e esperamos que o arquivo esteja presente 
+	// no diretório de preparação após a execução do trabalho.
+	void testJobExecution() throws Exception {
 		// given
 		// Cria um JobParameters que inclui um parâmetro 'random' exclusivo, geralmente com base no timestamp, para garantir que 
 		// cada execução seja considerada única. Além disso, diciona um parâmetro personalizado chamado "input.file"
 		JobParameters jobParameters = this.jobLauncherTestUtils.getUniqueJobParametersBuilder()
-				.addString("input.file", "/some/input/file")
+				.addString("input.file", "src/main/resources/billing-2023-01.csv")
 				.toJobParameters();
 
 		// when
@@ -63,7 +64,7 @@ class BillingJobApplicationTests {
 		JobExecution jobExecution = this.jobLauncherTestUtils.launchJob(jobParameters);
 
 		// then
-		Assertions.assertTrue(output.getOut().contains("processing billing information from file /some/input/file"));
+		Assertions.assertTrue(Files.exists(Paths.get("staging", "billing-2023-01.csv")));
 
 		Assertions.assertEquals(ExitStatus.COMPLETED, jobExecution.getExitStatus());	
 	}
