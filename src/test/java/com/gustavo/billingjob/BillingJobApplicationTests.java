@@ -15,7 +15,8 @@ import org.springframework.batch.test.JobRepositoryTestUtils;
 import org.springframework.batch.test.context.SpringBatchTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.jdbc.JdbcTestUtils;
 
 // Ativa a configuração de beans específicos para testes do Spring Batch, permitindo que componentes como o 
 // JobLauncherTestUtils e JobRepositoryTestUtils estejam disponíveis automaticamente no contexto de teste.
@@ -33,6 +34,9 @@ class BillingJobApplicationTests {
    	// Fornece métodos para manipular o JobRepository durante os testes
    	private JobRepositoryTestUtils jobRepositoryTestUtils;
    	
+   	@Autowired
+    private JdbcTemplate jdbcTemplate;
+   	
    	// Caso haja mais de um job, é necessário especificar qual deles será testado. 
    	/*
     @Autowired
@@ -46,6 +50,8 @@ class BillingJobApplicationTests {
    		// Limpa todas as execuções de trabalho (job executions) antes de cada teste, para que cada execução tenha um esquema novo 
    		// e não seja afetada pelos metadados de outros testes.
 		this.jobRepositoryTestUtils.removeJobExecutions();
+		// Exclui todas as linhas da tabela BILLING_DATA antes de cada teste
+		JdbcTestUtils.deleteFromTables(this.jdbcTemplate, "BILLING_DATA");
 	}
 
 	@Test
@@ -65,7 +71,7 @@ class BillingJobApplicationTests {
 
 		// then
 		Assertions.assertTrue(Files.exists(Paths.get("staging", "billing-2023-01.csv")));
-
+		Assertions.assertEquals(1000, JdbcTestUtils.countRowsInTable(jdbcTemplate, "BILLING_DATA"));
 		Assertions.assertEquals(ExitStatus.COMPLETED, jobExecution.getExitStatus());	
 	}
 
