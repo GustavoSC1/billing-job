@@ -15,7 +15,10 @@ public class FilePreparationTasklet implements Tasklet {
 	
 	// Copia o arquivo de entrada contendo dados de faturamento para um diretório de preparação.
 	@Override
+	// StepContribution representa a contribuição deste Tasklet para a step (por exemplo, quantos itens foram lidos, gravados ou processados ​​de outra forma).
+	// ChunkContext é um conjunto de pares de chave/valor que fornecem detalhes sobre o contexto de execução do Tasklet.
 	public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
+		// Acessar os JobParameters associados à execução do Job.
 		JobParameters jobParameters = contribution.getStepExecution().getJobParameters();
 		String inputFile = jobParameters.getString("input.file");
 		Path source = Paths.get(inputFile);
