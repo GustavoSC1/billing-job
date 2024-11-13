@@ -63,8 +63,11 @@ class BillingJobApplicationTests {
 		// Cria um JobParameters que inclui um parâmetro 'random' exclusivo, geralmente com base no timestamp, para garantir que 
 		// cada execução seja considerada única. Além disso, diciona um parâmetro personalizado chamado "input.file"
 		JobParameters jobParameters = this.jobLauncherTestUtils.getUniqueJobParametersBuilder()
-				.addString("input.file", "src/main/resources/billing-2023-01.csv")
-				.toJobParameters();
+		        .addString("input.file", "input/billing-2023-01.csv")
+		        .addString("output.file", "staging/billing-report-2023-01.csv")
+		        .addString("data.year", "2023")
+		        .addString("data.month", "1")
+		        .toJobParameters();
 
 		// when
 		// Inicia o Job em lote com um conjunto de parâmetros.

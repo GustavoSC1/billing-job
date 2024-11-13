@@ -5,6 +5,7 @@ import javax.sql.DataSource;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.JobParametersValidator;
 import org.springframework.batch.core.Step;
+import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
@@ -19,6 +20,7 @@ import org.springframework.batch.item.file.FlatFileItemReader;
 import org.springframework.batch.item.file.FlatFileItemWriter;
 import org.springframework.batch.item.file.builder.FlatFileItemReaderBuilder;
 import org.springframework.batch.item.file.builder.FlatFileItemWriterBuilder;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.FileSystemResource;
@@ -86,12 +88,15 @@ public class BillingJobConfiguration {
   }
   
   @Bean
-  public FlatFileItemReader<BillingData> billingDataFileReader() {
+  // Permite que o bean seja criado uma vez por execução de Step e que seja isolado para essa execução
+  @StepScope
+  // Por meio de SpEL (Spring Expression Language) é possivel ler o parametro input.file em tempo de execução
+  public FlatFileItemReader<BillingData> billingDataFileReader(@Value("#{jobParameters['input.file']}") String inputFile) {
 	// A principal função do FlatFileItemReader é ler dados linha a linha de um arquivo e convertê-los em objetos do tipo desejado.
       return new FlatFileItemReaderBuilder<BillingData>()
               .name("billingDataFileReader")
               // Define a origem do arquivo que será lido.
-              .resource(new FileSystemResource("staging/billing-2023-01.csv"))
+              .resource(new FileSystemResource(inputFile))
               // Utilizado para dividir cada linha em campos individuais.
               .delimited()
               .delimiter(",")
@@ -112,8 +117,11 @@ public class BillingJobConfiguration {
   }
   
   @Bean
-  public JdbcCursorItemReader<BillingData> billingDataTableReader(DataSource dataSource) {
-      String sql = "select * from BILLING_DATA";
+  @StepScope
+  public JdbcCursorItemReader<BillingData> billingDataTableReader(DataSource dataSource,
+		  @Value("#{jobParameters['data.year']}") String year,
+		  @Value("#{jobParameters['data.month']}") String month) {
+      String sql = String.format("select * from BILLING_DATA where DATA_YEAR = %s and DATA_MONTH = %s", year, month);
       // A classe JdbcCursorItemReaderBuilder permite ler dados de um banco de dados relacional por meio de consultas SQL, 
       // utilizando um cursor JDBC para recuperar os registros linha por linha.
       return new JdbcCursorItemReaderBuilder<BillingData>()
@@ -132,10 +140,11 @@ public class BillingJobConfiguration {
   }
   
   @Bean
-  public FlatFileItemWriter<ReportingData> billingDataFileWriter() {
+  @StepScope
+  public FlatFileItemWriter<ReportingData> billingDataFileWriter(@Value("#{jobParameters['output.file']}") String outputFile) {
           return new FlatFileItemWriterBuilder<ReportingData>()
         	   // arquivo de destino
-              .resource(new FileSystemResource("staging/billing-report-2023-01.csv"))
+              .resource(new FileSystemResource(outputFile))
               .name("billingDataFileWriter")
               .delimited()
               .delimiter(",")
